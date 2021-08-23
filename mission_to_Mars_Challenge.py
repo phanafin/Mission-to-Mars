@@ -96,47 +96,50 @@ df.to_html()
 # 1. Use browser to visit the URL 
 url = 'https://marshemispheres.com/'
 response = requests.get(url);
-soup = soup(response.text, 'lxml')
+hem_soup = soup(response.text, 'lxml')
 browser.visit(url)
 
 
 # %%
 # 2. Create a list to hold the images and titles.
 links = []
-hemisphere_image_urls = ['https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/cerberus_enhanced.tif/full.jpg',
-                         'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/schiaparelli_enhanced.tif/full.jpg',
-                         'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/syrtis_major_enhanced.tif/full.jpg',
-                         'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/valles_marineris_enhanced.tif/full.jpg'
-                         ];
+titles = []
+images = []
+hemisphere_image_urls = [
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/cerberus_enhanced.tif/full.jpg',
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/schiaparelli_enhanced.tif/full.jpg',
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/syrtis_major_enhanced.tif/full.jpg',
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/valles_marineris_enhanced.tif/full.jpg'
+                         ]
 
-div_results = soup.find('div', class_='collapsible results');
-div_items = div_results.find('div', class_='item');
+div_results = hem_soup.find('div', class_='collapsible results')
+div_items = div_results.find_all('div', class_='item')
+#print(len(div_items))
 
 # 3. Write code to retrieve the image urls and titles for each hemisphere.
 for div_item in div_items:
-    hemisphere = {}
-    div_content = div_items.find('div', class_='description')
+    #hemisphere = {}
+    div_content = div_item.find('div', class_='description')
     
     title = div_content.find('h3').text
-    hemisphere['title'] = title
+    #hemisphere['title'] = title
+    titles.append(title)
     
-    href = div_items.find('a', {"class":"itemLink product-item"})['href']
-    links.append(base_url + href)
+    href = div_item.find('a', {"class":"itemLink product-item"})['href']
+    #print(href)
+    links.append(url + href)
     
 for link in links:
     response = requests.get(link)
-    soup = soup(response.text, 'lxml')
+    link_soup = soup(response.text, 'lxml')
         
-    img_src = soup.find("img", {"class":"wide-image"})['src']
-    img_url = base_url + img_src
-    hemisphere['img_url'] = img_url
-        
-hemisphere_img_urls.append(hemisphere)
-
-#browser.back()
-
-   
-
+    img_src = link_soup.find("img", {"class":"wide-image"})['src']
+    img_url = url + img_src
+    #hemisphere['img_url'] = img_url
+    images.append(img_url)
+    
+df = pd.DataFrame({"title": titles, "img_url": images})
+hemisphere_image_urls = df.to_dict("records")
 
 # %%
 # 4. Print the list that holds the dictionary of each image url and title.

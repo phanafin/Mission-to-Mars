@@ -1,10 +1,14 @@
 # Import Splinter, BeautifulSoup, and Pandas
+from bs4.element import Declaration
 from splinter import Browser
 from bs4 import BeautifulSoup as soup
 import pandas as pd
 import datetime as dt
 from webdriver_manager.chrome import ChromeDriverManager
-
+import requests
+import re
+import pymongo
+from flask import Flask, render_template, redirect
 
 def scrape_all():
     # Initiate headless driver for deployment
@@ -19,11 +23,12 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "last_modified": dt.datetime.now(),
+        #"images": img_url
     }
 
     # Stop webdriver and return data
-    browser.quit()
+    #browser.quit()
     return data
 
 
@@ -101,3 +106,63 @@ if __name__ == "__main__":
 
     # If running as script, print scraped data
     print(scrape_all())
+    
+# %%
+# 1. Use browser to visit the URL 
+executable_path = {'executable_path': ChromeDriverManager().install()}
+browser = Browser('chrome', **executable_path, headless=False)
+new_url = 'https://marshemispheres.com/'
+response = requests.get(new_url);
+hem_soup = soup(response.text, 'lxml')
+browser.visit(new_url)
+
+
+# %%
+# 2. Create a list to hold the images and titles.
+links = []
+titles = []
+images = []
+hemisphere_image_urls = [
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/cerberus_enhanced.tif/full.jpg',
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/schiaparelli_enhanced.tif/full.jpg',
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/syrtis_major_enhanced.tif/full.jpg',
+                        # 'https://astropedia.astrogeology.usgs.gov/download/Mars/Viking/valles_marineris_enhanced.tif/full.jpg'
+                         ]
+
+div_results = hem_soup.find('div', class_='collapsible results')
+div_items = div_results.find_all('div', class_='item')
+#print(len(div_items))
+
+# 3. Write code to retrieve the image urls and titles for each hemisphere.
+for div_item in div_items:
+    #hemisphere = {}
+    div_content = div_item.find('div', class_='description')
+    
+    title = div_content.find('h3').text
+    #hemisphere['title'] = title
+    titles.append(title)
+    
+    href = div_item.find('a', {"class":"itemLink product-item"})['href']
+    #print(href)
+    links.append(new_url + href)
+    
+for link in links:
+    response = requests.get(link)
+    link_soup = soup(response.text, 'lxml')
+        
+    img_src = link_soup.find("img", {"class":"wide-image"})['src']
+    img_url = new_url + img_src
+    #hemisphere['img_url'] = img_url
+    images.append(img_url)
+    
+df = pd.DataFrame({"title": titles, "img_url": images})
+hemisphere_image_urls = df.to_dict("records")
+
+# %%
+# 4. Print the list that holds the dictionary of each image url and title.
+hemisphere_image_urls
+
+
+# %%
+# 5. Quit the browser
+browser.quit()

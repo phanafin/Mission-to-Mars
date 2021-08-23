@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, request, make_response, render_template, redirect, url_for
 from flask_pymongo import PyMongo
 import scraping
 
